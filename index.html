@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>응급 및 재난간호학 (NURS 302) - 스마트 가상 강의실</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        },
+                        ktas: {
+                            1: '#dc2626', // Red (Resuscitation)
+                            2: '#ea580c', // Orange (Emergency)
+                            3: '#ca8a04', // Yellow (Urgent)
+                            4: '#16a34a', // Green (Less Urgent)
+                            5: '#2563eb', // Blue (Non-Urgent)
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        /* Pulse animation for ECG simulation */
+        @keyframes ecgScan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .animate-ecg {
+            animation: ecgScan 2s linear infinite;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-white">
+
+    <!-- Top Navigation Bar (Hospital/University Interface) -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-red-600/20 text-red-500 rounded-lg border border-red-500/30 animate-pulse">
+                        <i data-lucide="siren" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold px-2 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-800 rounded">2026-2학기</span>
+                            <span class="text-xs font-bold text-slate-400">간호학과 3학년</span>
+                        </div>
+                        <h1 class="text-lg font-bold text-white tracking-tight">응급 및 재난간호학 (Emergency & Disaster Nursing)</h1>
+                    </div>
+                </div>
+
+                <!-- Right Header Tools -->
+                <div class="hidden md:flex items-center gap-4">
+                    <div class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span class="text-slate-300 font-mono" id="live-clock">00:00:00</span>
+                        <span class="text-slate-500">|</span>
+                        <span class="text-cyan-400 font-medium">담당교수: 김응급 교수 (RN, PhD, CEN)</span>
+                    </div>
+                    <button onclick="toggleAnnouncements()" class="relative p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                    <div class="flex items-center gap-3 border-l border-slate-800 pl-4">
+                        <div class="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-white text-sm border border-cyan-400">
+                            학생
+                        </div>
+                        <div class="text-xs">
+                            <div class="font-semibold text-slate-200">202411042 이간호</div>
+                            <div class="text-slate-400">3학년 A반 (출석완료)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
+
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-64 flex-shrink-0">
+            <nav class="space-y-1 sticky top-22">
+                <button onclick="switchTab('dashboard')" id="btn-dashboard" class="nav-btn active w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition text-left bg-cyan-600 text-white shadow-lg shadow-cyan-950/50">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    대시보드 & 공지사항
+                </button>
+                <button onclick="switchTab('ktas')" id="btn-ktas" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition text-left text-slate-400 hover:bg-slate-900 hover:text-white">
+                    <i data-lucide="activity" class="w-5 h-5 text-red-400"></i>
+                    KTAS 환자 중증도 분류
+                </button>
+                <button onclick="switchTab('disaster')" id="btn-disaster" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition text-left text-slate-400 hover:bg-slate-900 hover:text-white">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>
+                    재난현장 START 분류 & DMAT
+                </button>
+                <button onclick="switchTab('acls')" id="btn-acls" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition text-left text-slate-400 hover:bg-slate-900 hover:text-white">
+                    <i data-lucide="heart-pulse" class="w-5 h-5 text-emerald-400"></i>
+                    ACLS 심장정지 알고리즘
+                </button>
+                <button onclick="switchTab('calc')" id="btn-calc" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition text-left text-slate-400 hover:bg-slate-900 hover:text-white">
+                    <i data-lucide="calculator" class="w-5 h-5 text-blue-400"></i>
+                    응급 약리 및 용량 계산기
+                </button>
+                <button onclick="switchTab('exam')" id="btn-exam" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition text-left text-slate-400 hover:bg-slate-900 hover:text-white">
+                    <i data-lucide="award" class="w-5 h-5 text-purple-400"></i>
+                    국가고시 실전 모의고사
+                </button>
+
+                <!-- Quick Emergency Guide Box -->
+                <div class="mt-8 p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative overflow-hidden">
+                    <div class="absolute -right-4 -bottom-4 opacity-10 text-cyan-400">
+                        <i data-lucide="shield-alert" class="w-32 h-32"></i>
+                    </div>
+                    <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i data-lucide="book-open" class="w-4 h-4"></i> 핵심 간호 지침서
+                    </h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        중증 응급환자 골든타임 확보 및 Triage 원칙 준수를 위한 임상 가이드라인 모음.
+                    </p>
+                    <a href="#quick-modal" onclick="openModal('guideline')" class="inline-block w-full text-center py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition">
+                        가이드라인 PDF 다운로드
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content Body -->
+        <main class="flex-1 space-y-6 overflow-hidden">
+
+            <!-- TAB 1: DASHBOARD -->
+            <section id="tab-dashboard" class="space-y-6">
+                <!-- Welcome Banner -->
+                <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-950 p-6 rounded-2xl border border-slate-800 relative overflow-hidden shadow-2xl">
+                    <div class="relative z-10 max-w-2xl">
+                        <span class="px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold">
+                            3학년 2학기 핵심 전공필수
+                        </span>
+                        <h2 class="text-2xl font-black text-white mt-3 mb-2">실전 임상 대응력 강화를 위한 가상 응급실 메인</h2>
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            본 강의실은 권역응급의료센터 및 대형 재난 현장의 생생한 케이스를 바탕으로 중증도 분류, 심폐소생술, 약물 계산, 국가고시 대비 시뮬레이션을 제공합니다.
+                        </p>
+                        <div class="mt-4 flex flex-wrap gap-3">
+                            <div class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700/80 text-xs flex items-center gap-2">
+                                <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
+                                <span>수업: 매주 목요일 09:00 - 12:00 (간호학관 402호/ER랩)</span>
+                            </div>
+                            <div class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700/80 text-xs flex items-center gap-2">
+                                <i data-lucide="file-check" class="w-4 h-4 text-emerald-400"></i>
+                                <span>오늘의 과제: KTAS 5가지 사례 중증도 평가 제출 (D-2)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Status Stats Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-center gap-4">
+                        <div class="p-3 bg-red-500/10 text-red-400 rounded-lg border border-red-500/20">
+                            <i data-lucide="siren" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400">이번 주 학습 시뮬레이션</div>
+                            <div class="text-xl font-bold text-white">KTAS 훈련 4차</div>
+                            <div class="text-[10px] text-emerald-400 font-medium">달성률 88% (완료)</div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-center gap-4">
+                        <div class="p-3 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20">
+                            <i data-lucide="flame" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400">대형 재난 트리아지</div>
+                            <div class="text-xl font-bold text-white">START 모듈</div>
+                            <div class="text-[10px] text-amber-400 font-medium">중증도 구분 연습중</div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-center gap-4">
+                        <div class="p-3 bg-cyan-500/10 text-cyan-400 rounded-lg border border-cyan-500/20">
+                            <i data-lucide="clock" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400">출석 및 학습 수행율</div>
+                            <div class="text-xl font-bold text-white">100 %</div>
+                            <div class="text-[10px] text-cyan-400 font-medium">정상 출석 인정</div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-center gap-4">
+                        <div class="p-3 bg-purple-500/10 text-purple-400 rounded-lg border border-purple-500/20">
+                            <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400">형성평가 평균</div>
+                            <div class="text-xl font-bold text-white">92.5 점</div>
+                            <div class="text-[10px] text-purple-400 font-medium">상위 5% 우수</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Split: Real-time ECG Live Monitor & Announcements -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- ECG Waveform Simulator Widget -->
+                    <div class="lg:col-span-2 bg-slate-900 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i>
+                                <h3 class="font-bold text-white text-base">실시간 임상 심전도(ECG) 판독 모니터</h3>
+                            </div>
+                            <select id="ecg-selector" onchange="changeECGWaveform(this.value)" class="bg-slate-800 text-xs text-slate-200 border border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
+                                <option value="nsr">Normal Sinus Rhythm (NSR)</option>
+                                <option value="vt">Pulseless Ventricular Tachycardia (VT)</option>
+                                <option value="vf">Ventricular Fibrillation (VF)</option>
+                                <option value="asystole">Asystole (무맥박)</option>
+                                <option value="afib">Atrial Fibrillation (A-fib)</option>
+                            </select>
+                        </div>
+
+                        <!-- ECG Canvas Visualizer -->
+                        <div class="relative bg-black rounded-xl p-3 border border-emerald-950 overflow-hidden h-48 flex items-center justify-center">
+                            <canvas id="ecgCanvas" class="w-full h-full"></canvas>
+                            <div class="absolute top-3 right-4 flex items-center gap-3 font-mono text-xs">
+                                <div class="text-emerald-500">HR: <span id="hr-display" class="text-lg font-bold">75</span> bpm</div>
+                                <div class="text-cyan-400">SpO2: <span class="text-lg font-bold">98%</span></div>
+                            </div>
+                        </div>
+
+                        <div id="ecg-info-box" class="mt-4 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 text-xs text-slate-300">
+                            <span class="font-bold text-emerald-400">[판독 소견] Normal Sinus Rhythm:</span> 정상 동율동. 규칙적인 P파, QRS군, T파 관찰됨. 심박수 60-100회/분 유지 중. 특별한 응급 처치 불필요.
+                        </div>
+                    </div>
+
+                    <!-- Announcements & Syllabus -->
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                    <i data-lucide="megaphone" class="w-4 h-4 text-cyan-400"></i>
+                                    강의 공지사항
+                                </h3>
+                                <span class="text-[11px] text-cyan-400 cursor-pointer hover:underline">전체보기</span>
+                            </div>
+                            <ul class="space-y-3 text-xs">
+                                <li class="p-2.5 bg-slate-950/50 rounded-lg border border-slate-800 hover:border-slate-700 transition">
+                                    <div class="flex items-center justify-between font-semibold text-slate-200 mb-1">
+                                        <span class="text-red-400 font-bold">[긴급]</span> 중간고사 OSCA 실기시험 안내
+                                        <span class="text-[10px] text-slate-500">10.28</span>
+                                    </div>
+                                    <p class="text-slate-400">11월 12일 ER 실습실에서 제트트리아지 및 제세동기 사용법 실무 평가 실시 예정.</p>
+                                </li>
+                                <li class="p-2.5 bg-slate-950/50 rounded-lg border border-slate-800 hover:border-slate-700 transition">
+                                    <div class="flex items-center justify-between font-semibold text-slate-200 mb-1">
+                                        <span>DMAT 재난의료지원단 특강 자료</span>
+                                        <span class="text-[10px] text-slate-500">10.22</span>
+                                    </div>
+                                    <p class="text-slate-400">국립중앙의료원 중앙응급의료센터 전문의 초빙 강연 자료 업로드 완료.</p>
+                                </li>
+                                <li class="p-2.5 bg-slate-950/50 rounded-lg border border-slate-800 hover:border-slate-700 transition">
+                                    <div class="flex items-center justify-between font-semibold text-slate-200 mb-1">
+                                        <span>KTAS 분류 5차 과제 오픈</span>
+                                        <span class="text-[10px] text-slate-500">10.15</span>
+                                    </div>
+                                    <p class="text-slate-400">가상 환자 주소소(CC) 기반 분류 연습 후 제출 버튼을 클릭하세요.</p>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-800">
+                            <button onclick="switchTab('exam')" class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition">
+                                오늘 추천: 간호사 국가고시 응급간호 파트 풀기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: KTAS SIMULATION -->
+            <section id="tab-ktas" class="hidden space-y-6">
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-slate-800 pb-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 bg-red-950 text-red-400 border border-red-800 rounded text-xs font-bold">임상 트리아지</span>
+                                <h2 class="text-xl font-bold text-white">KTAS (Korean Triage and Acuity Scale) 중증도 분류 시뮬레이터</h2>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">응급실 내원 환자의 주소소, 바이탈 사인, 의식 상태를 종합하여 KTAS 1단계~5 단계를 판정하세요.</p>
+                        </div>
+                        <div class="flex gap-2 text-xs">
+                            <span class="px-2 py-1 bg-ktas-1/20 text-red-400 border border-ktas-1/30 rounded">1단계: 소생</span>
+                            <span class="px-2 py-1 bg-ktas-2/20 text-orange-400 border border-ktas-2/30 rounded">2단계: 중응급</span>
+                            <span class="px-2 py-1 bg-ktas-3/20 text-yellow-400 border border-ktas-3/30 rounded">3단계: 응급</span>
+                            <span class="px-2 py-1 bg-ktas-4/20 text-green-400 border border-ktas-4/30 rounded">4단계: 준응급</span>
+                            <span class="px-2 py-1 bg-ktas-5/20 text-blue-400 border border-ktas-5/30 rounded">5단계: 비응급</span>
+                        </div>
+                    </div>
+
+                    <!-- Case Interactive Simulator Card -->
+                    <div id="ktas-card" class="bg-slate-950 p-6 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Patient Info Side -->
+                        <div class="md:col-span-2 space-y-4">
+                            <div class="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-slate-300" id="patient-avatar">
+                                        Pt
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-bold text-white" id="ktas-pt-name">김응급 (M / 58세)</div>
+                                        <div class="text-xs text-slate-400" id="ktas-pt-mode">내원수단: 119 구급대 이송</div>
+                                    </div>
+                                </div>
+                                <span id="ktas-case-num" class="text-xs font-mono px-2 py-1 bg-slate-800 text-cyan-400 rounded">CASE #01</span>
+                            </div>
+
+                            <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-800/80 space-y-2">
+                                <div class="text-xs font-bold text-cyan-400">주소소 (Chief Complaint)</div>
+                                <p id="ktas-cc" class="text-sm text-slate-200 leading-relaxed font-medium">
+                                    "1시간 전부터 쥐어짜는 듯한 흉통이 시작되었고, 좌측 어깨와 턱으로 통증이 방사됩니다. 식은땀이 나고 호흡곤란을 호소함."
+                                </p>
+                            </div>
+
+                            <!-- Vital Signs Dashboard -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                    <div class="text-[10px] text-slate-400">혈압 (BP)</div>
+                                    <div id="ktas-bp" class="text-base font-bold text-red-400 font-mono">160/95 mmHg</div>
+                                </div>
+                                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                    <div class="text-[10px] text-slate-400">맥박 (HR)</div>
+                                    <div id="ktas-hr" class="text-base font-bold text-amber-400 font-mono">112 회/분</div>
+                                </div>
+                                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                    <div class="text-[10px] text-slate-400">호흡수 (RR)</div>
+                                    <div id="ktas-rr" class="text-base font-bold text-cyan-400 font-mono">24 회/분</div>
+                                </div>
+                                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                    <div class="text-[10px] text-slate-400">체온 / SpO2</div>
+                                    <div id="ktas-spo2" class="text-base font-bold text-emerald-400 font-mono">36.8℃ / 93%</div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80 text-xs">
+                                <span class="font-bold text-slate-300">의식 상태 (AVPU):</span> <span id="ktas-avpu" class="text-slate-200">Alert (명료)</span> | <span class="font-bold text-slate-300">통증 점수 (NRS):</span> <span id="ktas-nrs" class="text-red-400 font-bold">8점</span>
+                            </div>
+                        </div>
+
+                        <!-- KTAS Decision Buttons Side -->
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                    <i data-lucide="check-square" class="w-4 h-4 text-cyan-400"></i> 중증도 단계 선택
+                                </h4>
+                                <div class="space-y-2">
+                                    <button onclick="submitKTASAnswer(1)" class="w-full text-left p-2.5 rounded-lg border border-red-900/50 bg-red-950/20 hover:bg-red-900/40 text-red-300 text-xs font-bold transition flex justify-between items-center">
+                                        <span>1단계: 소생 (Resuscitation)</span>
+                                        <span class="text-[10px] bg-red-900 px-1.5 py-0.5 rounded">즉시</span>
+                                    </button>
+                                    <button onclick="submitKTASAnswer(2)" class="w-full text-left p-2.5 rounded-lg border border-orange-900/50 bg-orange-950/20 hover:bg-orange-900/40 text-orange-300 text-xs font-bold transition flex justify-between items-center">
+                                        <span>2단계: 중응급 (Emergency)</span>
+                                        <span class="text-[10px] bg-orange-900 px-1.5 py-0.5 rounded">10분 이내</span>
+                                    </button>
+                                    <button onclick="submitKTASAnswer(3)" class="w-full text-left p-2.5 rounded-lg border border-yellow-900/50 bg-yellow-950/20 hover:bg-yellow-900/40 text-yellow-300 text-xs font-bold transition flex justify-between items-center">
+                                        <span>3단계: 응급 (Urgent)</span>
+                                        <span class="text-[10px] bg-yellow-900 px-1.5 py-0.5 rounded">30분 이내</span>
+                                    </button>
+                                    <button onclick="submitKTASAnswer(4)" class="w-full text-left p-2.5 rounded-lg border border-green-900/50 bg-green-950/20 hover:bg-green-900/40 text-green-300 text-xs font-bold transition flex justify-between items-center">
+                                        <span>4단계: 준응급 (Less Urgent)</span>
+                                        <span class="text-[10px] bg-green-900 px-1.5 py-0.5 rounded">60분 이내</span>
+                                    </button>
+                                    <button onclick="submitKTASAnswer(5)" class="w-full text-left p-2.5 rounded-lg border border-blue-900/50 bg-blue-950/20 hover:bg-blue-900/40 text-blue-300 text-xs font-bold transition flex justify-between items-center">
+                                        <span>5단계: 비응급 (Non-Urgent)</span>
+                                        <span class="text-[10px] bg-blue-900 px-1.5 py-0.5 rounded">120분 이내</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="ktas-feedback" class="mt-4 p-3 rounded-lg bg-slate-950 hidden border text-xs">
+                                <!-- Dynamic Feedback inserted via JS -->
+                            </div>
+
+                            <button onclick="nextKTASCase()" id="btn-next-ktas" class="mt-4 w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition hidden">
+                                다음 케이스 평가하기 →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: DISASTER START TRIAGE & DMAT -->
+            <section id="tab-disaster" class="hidden space-y-6">
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 bg-amber-950 text-amber-400 border border-amber-800 rounded text-xs font-bold">현장 재난의료지원단 (DMAT)</span>
+                                <h2 class="text-xl font-bold text-white">START (Simple Triage and Rapid Treatment) 분류 체계</h2>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">대형 건물 붕괴 현장 다수사상자 발생 시, 60초 이내 보행, 호흡, 순환, 의식에 따른 중증도 매김 알고리즘.</p>
+                        </div>
+                    </div>
+
+                    <!-- Interactive START Algorithm Flow Simulator -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Step Interactive Decision Builder -->
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                            <h3 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
+                                <i data-lucide="git-branch" class="w-4 h-4"></i> START 단계별 평가 시뮬레이션
+                            </h3>
+
+                            <!-- Step 1: Walking -->
+                            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+                                <div class="text-xs font-bold text-slate-300 mb-2">1단계: 보행 가능 여부 (Walking Well)</div>
+                                <p class="text-xs text-slate-400 mb-3">"걸어 나올 수 있는 환자는 모두 지정된 안전지대로 이동하도록 안내합니다."</p>
+                                <div class="flex gap-2">
+                                    <button onclick="setStartStep(1, true)" class="flex-1 py-1.5 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800 rounded text-xs font-semibold">보행 가능 (녹색-비응급)</button>
+                                    <button onclick="setStartStep(1, false)" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-semibold">보행 불가능 (다음 단계)</button>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: Breathing -->
+                            <div id="start-step-2" class="p-3 bg-slate-900 rounded-lg border border-slate-800 opacity-50 pointer-events-none">
+                                <div class="text-xs font-bold text-slate-300 mb-2">2단계: 자발 호흡 평가 (Respiration)</div>
+                                <div class="flex gap-2 mb-2">
+                                    <button onclick="setStartStep(2, 'none')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">호흡 없음</button>
+                                    <button onclick="setStartStep(2, 'over30')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">호흡수 &gt; 30회/분 (적색)</button>
+                                    <button onclick="setStartStep(2, 'under30')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">호흡수 &le; 30회/분 (다음)</button>
+                                </div>
+                            </div>
+
+                            <!-- Step 3: Perfusion -->
+                            <div id="start-step-3" class="p-3 bg-slate-900 rounded-lg border border-slate-800 opacity-50 pointer-events-none">
+                                <div class="text-xs font-bold text-slate-300 mb-2">3단계: 관류 상태 평가 (Perfusion / CRT)</div>
+                                <div class="flex gap-2">
+                                    <button onclick="setStartStep(3, 'slow')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">CRT &gt; 2초 또는 요골맥박 지연 (적색)</button>
+                                    <button onclick="setStartStep(3, 'normal')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">CRT &le; 2초 및 요골맥박 촉지 (다음)</button>
+                                </div>
+                            </div>
+
+                            <!-- Step 4: Mental Status -->
+                            <div id="start-step-4" class="p-3 bg-slate-900 rounded-lg border border-slate-800 opacity-50 pointer-events-none">
+                                <div class="text-xs font-bold text-slate-300 mb-2">4단계: 의식 상태 (Mental Status)</div>
+                                <div class="flex gap-2">
+                                    <button onclick="setStartStep(4, 'unable')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">명령 이행 불가 (적색-긴급)</button>
+                                    <button onclick="setStartStep(4, 'able')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">명령 이행 가능 (황색-응급)</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result Display Triage Tag Badge -->
+                        <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 flex flex-col justify-between items-center text-center">
+                            <div class="w-full">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">재난 현장 분류 표지 (Triage Tag) 결과</span>
+                                <div id="triage-tag-display" class="mt-6 p-8 rounded-2xl border-4 border-dashed border-slate-700 bg-slate-900 flex flex-col items-center justify-center transition-all duration-300">
+                                    <i data-lucide="tag" class="w-12 h-12 text-slate-600 mb-2"></i>
+                                    <div class="text-lg font-bold text-slate-400">평가를 진행하세요</div>
+                                    <div class="text-xs text-slate-500 mt-1">좌측 단계별 항목을 클릭하여 분류를 판정합니다.</div>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 text-left w-full bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1.5">
+                                <div class="font-bold text-cyan-400 mb-1">DMAT 현장처치소 이송 우선순위:</div>
+                                <div>🔴 **RED (긴급)**: 기도확보, 심폐소생 제외 즉각 처치 대상</div>
+                                <div>🟡 **YELLOW (응급)**: 1~2시간 이내 처치 시 생명 지장 없음</div>
+                                <div>🟢 **GREEN (비응급)**: 경상자, 외래 또는 지정대기소 이동</div>
+                                <div>⬛ **BLACK (지연/사망)**: 기도개선 후에도 무호흡인 경우</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: ACLS ALGORITHM -->
+            <section id="tab-acls" class="hidden space-y-6">
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded text-xs font-bold">2025/2026 AHA 가이드라인</span>
+                                <h2 class="text-xl font-bold text-white">전문심장소생술 (ACLS) 심장정지 알고리즘</h2>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">제세동 가능 리듬(VF/Pulseless VT)과 불가능 리듬(Asystole/PEA)의 처치 흐름 및 약물 투여 시점 시뮬레이션.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Rhythm Selection Column -->
+                        <div class="space-y-3">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">1. 리듬 판독 및 유형 선택</h3>
+                            <button onclick="selectACLSRhythm('vf')" class="w-full text-left p-3 rounded-xl border border-red-500/30 bg-red-950/20 hover:bg-red-900/40 transition">
+                                <div class="text-xs font-bold text-red-400">VF / Pulseless VT</div>
+                                <div class="text-[11px] text-slate-400">심실세동 및 무맥박 심실빈맥 (제세동 적상)</div>
+                            </button>
+                            <button onclick="selectACLSRhythm('pea')" class="w-full text-left p-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-900/40 transition">
+                                <div class="text-xs font-bold text-cyan-400">Asystole / PEA</div>
+                                <div class="text-[11px] text-slate-400">무수축 및 무맥박 전기활동 (제세동 불가능)</div>
+                            </button>
+                        </div>
+
+                        <!-- Step Interactive Checklist -->
+                        <div class="lg:col-span-2 bg-slate-950 p-5 rounded-xl border border-slate-800">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">2. CPR 및 응급 약물 처치 가이드</h3>
+                            <div id="acls-checklist" class="space-y-3 text-xs">
+                                <div class="p-4 bg-slate-900 rounded-lg text-slate-400 text-center">
+                                    좌측에서 심전도 리듬 유무를 선택하면 ACLS 가이드라인 순서가 표시됩니다.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: DOSAGE CALCULATOR -->
+            <section id="tab-calc" class="hidden space-y-6">
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 bg-blue-950 text-blue-400 border border-blue-800 rounded text-xs font-bold">임상 간호약리</span>
+                                <h2 class="text-xl font-bold text-white">응급 약물 투여량 및 gtt/분 정맥주사 계산기</h2>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">Dopamine, Epinephrine, Nitroglycerin 등 승압제/위급약물 mcg/kg/min 및 수액 방울수 계산.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Calculator 1: mcg/kg/min Drip Rate -->
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                            <h3 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
+                                <i data-lucide="droplet" class="w-4 h-4"></i> 승압제 (Dopamine/Dobutamine) mL/hr 계산
+                            </h3>
+                            
+                            <div class="space-y-3 text-xs">
+                                <div>
+                                    <label class="block text-slate-400 mb-1">처방 용량 (mcg/kg/min)</label>
+                                    <input type="number" id="calc-dose" value="5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">환자 체중 (kg)</label>
+                                    <input type="number" id="calc-weight" value="65" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">약물 혼합 용량 (mg in 500mL D5W)</label>
+                                    <input type="number" id="calc-mg" value="400" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-500">
+                                </div>
+                                <button onclick="calculateDrip()" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition">
+                                    주입 속도(mL/hr) 계산
+                                </button>
+                            </div>
+
+                            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 text-center">
+                                <div class="text-[10px] text-slate-400">Infusion Pump 주입 속도</div>
+                                <div id="calc-result" class="text-xl font-bold text-emerald-400 font-mono mt-1">24.37 mL/hr</div>
+                            </div>
+                        </div>
+
+                        <!-- Calculator 2: Gtt calculation -->
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                            <h3 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
+                                <i data-lucide="clock" class="w-4 h-4"></i> 수액 분당 방울 수 (gtt/min) 및 점적주기
+                            </h3>
+
+                            <div class="space-y-3 text-xs">
+                                <div>
+                                    <label class="block text-slate-400 mb-1">총 수액량 (mL)</label>
+                                    <input type="number" id="gtt-vol" value="1000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">주입 예정 시간 (시간)</label>
+                                    <input type="number" id="gtt-time" value="8" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">수액세트 점적계수 (Drop factor)</label>
+                                    <select id="gtt-factor" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-500">
+                                        <option value="20">20 gtt/mL (일반 수액세트)</option>
+                                        <option value="15">15 gtt/mL (과거 수액세트)</option>
+                                        <option value="60">60 gtt/mL (소아/Micro-drip)</option>
+                                    </select>
+                                </div>
+                                <button onclick="calculateGtt()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition">
+                                    gtt/분 및 초당 방울 계산
+                                </button>
+                            </div>
+
+                            <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 text-center">
+                                <div class="text-[10px] text-slate-400">분당 방울 수 (gtt/min)</div>
+                                <div id="gtt-result" class="text-xl font-bold text-cyan-400 font-mono mt-1">41.67 gtt/min (약 1.4초당 1방울)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 6: NCLEX / KOREAN BOARD EXAM PREP -->
+            <section id="tab-exam" class="hidden space-y-6">
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 bg-purple-950 text-purple-400 border border-purple-800 rounded text-xs font-bold">간호사 국가고시 실전 문제</span>
+                                <h2 class="text-xl font-bold text-white">응급간호학 핵심 기출 모의고사</h2>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">한국보건의료인국가시험원(국시원) 출제 경향을 반영한 고난도 5문항 시뮬레이션.</p>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Container -->
+                    <div id="quiz-container" class="space-y-6">
+                        <!-- Questions JS injected -->
+                    </div>
+
+                    <div class="mt-6 flex justify-between items-center border-t border-slate-800 pt-4">
+                        <button onclick="gradeQuiz()" class="py-2.5 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition text-sm">
+                            답안 제출 및 채점하기
+                        </button>
+                        <div id="quiz-score" class="text-lg font-bold text-purple-400"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Quick Modal Component for Download / Guidelines -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-5 h-5 text-cyan-400"></i>
+                    응급/재난간호 임상 핵심 지침서 PDF
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                본 지침서에는 보건복지부 권역응급의료센터 KTAS 분류지침, AHA ACLS 2025 가이드라인 summary, DMAT 재난응급의료비상대응매뉴얼 핵심 요약이 포함되어 있습니다.
+            </p>
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs font-mono text-cyan-400">
+                📄 ER_Disaster_Nursing_Guide_2026.pdf (14.2 MB)
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg">닫기</button>
+                <button onclick="downloadMockPDF()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg">다운로드</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 border-t border-slate-900 py-6 text-center text-xs text-slate-500 mt-auto">
+        <p>© 2026 간호대학 응급 및 재난간호학 시뮬레이션 교육 시스템. All rights reserved.</p>
+        <p class="mt-1 text-[11px] text-slate-600">본 웹사이트는 학술 및 실습 교육용 목적으로 제작되었습니다.</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Live Clock Feature
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            document.getElementById('live-clock').textContent = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Tab Switcher Logic
+        function switchTab(tabId) {
+            const tabs = ['dashboard', 'ktas', 'disaster', 'acls', 'calc', 'exam'];
+            tabs.forEach(id => {
+                const section = document.getElementById(`tab-${id}`);
+                const btn = document.getElementById(`btn-${id}`);
+                if (id === tabId) {
+                    section.classList.remove('hidden');
+                    btn.classList.add('bg-cyan-600', 'text-white', 'shadow-lg');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    section.classList.add('hidden');
+                    btn.classList.remove('bg-cyan-600', 'text-white', 'shadow-lg');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+            // Re-render Canvas if dynamic
+            if (tabId === 'dashboard') {
+                initECGCanvas();
+            }
+        }
+
+        // ==========================================
+        // ECG Simulator Logic
+        // ==========================================
+        let ecgAnimationId;
+        let ecgType = 'nsr';
+
+        function initECGCanvas() {
+            const canvas = document.getElementById('ecgCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            let x = 0;
+            const points = [];
+            const maxPoints = canvas.width;
+
+            function render() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw Grid
+                ctx.strokeStyle = '#022c22';
+                ctx.lineWidth = 0.5;
+                const gridSize = 15;
+                for (let gx = 0; gx < canvas.width; gx += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(gx, 0);
+                    ctx.lineTo(gx, canvas.height);
+                    ctx.stroke();
+                }
+                for (let gy = 0; gy < canvas.height; gy += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, gy);
+                    ctx.lineTo(canvas.width, gy);
+                    ctx.stroke();
+                }
+
+                // Generate Waveform Y Point based on ECG Type
+                let y = canvas.height / 2;
+                const cycle = x % 100;
+
+                if (ecgType === 'nsr') {
+                    if (cycle > 20 && cycle < 28) y -= 5; // P wave
+                    else if (cycle === 40) y += 8; // Q
+                    else if (cycle === 42) y -= 55; // R
+                    else if (cycle === 44) y += 20; // S
+                    else if (cycle > 55 && cycle < 70) y -= 12; // T wave
+                } else if (ecgType === 'vt') {
+                    y += Math.sin(x * 0.15) * 40;
+                } else if (ecgType === 'vf') {
+                    y += (Math.random() - 0.5) * 50;
+                } else if (ecgType === 'asystole') {
+                    y += (Math.random() - 0.5) * 2; // Flatline with tiny noise
+                } else if (ecgType === 'afib') {
+                    const noise = (Math.random() - 0.5) * 6;
+                    if (cycle === 42) y -= 45; // Irregular R
+                    else y += noise;
+                }
+
+                points.push({ x: x, y: y });
+                if (points.length > maxPoints) points.shift();
+
+                // Draw ECG Line
+                ctx.beginPath();
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#10b981';
+
+                for (let i = 0; i < points.length; i++) {
+                    if (i === 0) ctx.moveTo(points[i].x, points[i].y);
+                    else ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                x = (x + 2) % canvas.width;
+                ecgAnimationId = requestAnimationFrame(render);
+            }
+
+            cancelAnimationFrame(ecgAnimationId);
+            render();
+        }
+
+        function changeECGWaveform(type) {
+            ecgType = type;
+            const hrDisplay = document.getElementById('hr-display');
+            const infoBox = document.getElementById('ecg-info-box');
+
+            if (type === 'nsr') {
+                hrDisplay.textContent = '75';
+                infoBox.innerHTML = '<span class="font-bold text-emerald-400">[판독 소견] Normal Sinus Rhythm:</span> 정상 동율동. 규칙적인 P파, QRS군 관찰됨. 안정 상태.';
+            } else if (type === 'vt') {
+                hrDisplay.textContent = '180';
+                infoBox.innerHTML = '<span class="font-bold text-red-400">[응급 소견] Pulseless Ventricular Tachycardia:</span> 무맥박 심실빈맥. 즉시 맥박 확인 후 제세동(Defibrillation) 준비 필요!';
+            } else if (type === 'vf') {
+                hrDisplay.textContent = '---';
+                infoBox.innerHTML = '<span class="font-bold text-red-500">[비상 소견] Ventricular Fibrillation:</span> 심실세동. 무형의 불규칙한 파형. 즉시 CPR 및 제세동 시행!';
+            } else if (type === 'asystole') {
+                hrDisplay.textContent = '0';
+                infoBox.innerHTML = '<span class="font-bold text-slate-400">[판독 소견] Asystole:</span> 심수축 부전(Flatline). 제세동 불인식 리듬. 즉시 CPR 및 Epinephrine 1mg IV!';
+            } else if (type === 'afib') {
+                hrDisplay.textContent = '115';
+                infoBox.innerHTML = '<span class="font-bold text-amber-400">[판독 소견] Atrial Fibrillation:</span> 심방세동. P파 소실, 불규칙한 R-R 간격. 색전증 위험 및 심율동전환 고려.';
+            }
+        }
+
+        window.onload = function() {
+            initECGCanvas();
+            renderQuiz();
+        };
+
+        // ==========================================
+        // KTAS Simulation Cases Engine
+        // ==========================================
+        const ktasCases = [
+            {
+                id: 1,
+                name: "김응급 (M / 58세)",
+                mode: "119 구급대 이송",
+                cc: "1시간 전부터 쥐어짜는 듯한 흉통이 시작되었고, 좌측 어깨와 턱으로 통증이 방사됩니다. 식은땀이 나고 호흡곤란을 호소함.",
+                bp: "160/95 mmHg",
+                hr: "112 회/분",
+                rr: "24 회/분",
+                spo2: "36.8℃ / 93%",
+                avpu: "Alert (명료)",
+                nrs: "8점",
+                correctKtas: 2,
+                reason: "급성 관상동맥증후군(ACS) 의심 흉통이며 중증 통증(NRS 8점) 및 바이탈 변화가 동반되어 KTAS 2단계(중응급, 10분 이내 진료)에 해당합니다."
+            },
+            {
+                id: 2,
+                name: "박소생 (F / 72세)",
+                mode: "119 구급대 이송 (비재호흡마스크 적용)",
+                cc: "음식물 섭취 중 갑작스러운 기도 폐쇄 발생 후 청색증 및 의식 저하. 자발 호흡 불규칙하며 맥박 약함.",
+                bp: "70/40 mmHg",
+                hr: "42 회/분",
+                rr: "8 회/분",
+                spo2: "36.1℃ / 78%",
+                avpu: "Unresponsive (무응답)",
+                nrs: "평가불가",
+                correctKtas: 1,
+                reason: "기도 폐쇄로 인한 호흡부전 및 심각한 혈류역학적 불안정, 의식 소실 상태로 즉각적인 처치가 필요한 KTAS 1단계(소생)입니다."
+            },
+            {
+                id: 3,
+                name: "이준응 (M / 24세)",
+                mode: "도보 내원",
+                cc: "우하복부(RLQ) 통증 4시간 전 시작. 압통(Tenderness) 및 반발통(Rebound tenderness) 관찰됨. 미열 동반.",
+                bp: "120/80 mmHg",
+                hr: "84 회/분",
+                rr: "18 회/분",
+                spo2: "37.8℃ / 99%",
+                avpu: "Alert (명료)",
+                nrs: "5점",
+                correctKtas: 3,
+                reason: "급성 충수돌기염(Appendicitis) 의심 증상으로 중등도 통증과 국소 복막 자극 증후가 있어 KTAS 3단계(응급, 30분 이내)에 해당합니다."
+            }
+        ];
+
+        let currentKtasIdx = 0;
+
+        function submitKTASAnswer(selectedLevel) {
+            const currentCase = ktasCases[currentKtasIdx];
+            const feedbackBox = document.getElementById('ktas-feedback');
+            const nextBtn = document.getElementById('btn-next-ktas');
+
+            feedbackBox.classList.remove('hidden', 'bg-red-950/40', 'border-red-800', 'text-red-300', 'bg-emerald-950/40', 'border-emerald-800', 'text-emerald-300');
+
+            if (selectedLevel === currentCase.correctKtas) {
+                feedbackBox.classList.add('bg-emerald-950/40', 'border-emerald-800', 'text-emerald-300');
+                feedbackBox.innerHTML = `<strong>정답입니다! (KTAS ${currentCase.correctKtas}단계)</strong><br>${currentCase.reason}`;
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+            } else {
+                feedbackBox.classList.add('bg-red-950/40', 'border-red-800', 'text-red-300');
+                feedbackBox.innerHTML = `<strong>오답입니다. (제출: ${selectedLevel}단계 / 정답: KTAS ${currentCase.correctKtas}단계)</strong><br>${currentCase.reason}`;
+            }
+
+            nextBtn.classList.remove('hidden');
+        }
+
+        function nextKTASCase() {
+            currentKtasIdx = (currentKtasIdx + 1) % ktasCases.length;
+            const c = ktasCases[currentKtasIdx];
+
+            document.getElementById('ktas-pt-name').textContent = c.name;
+            document.getElementById('ktas-pt-mode').textContent = `내원수단: ${c.mode}`;
+            document.getElementById('ktas-case-num').textContent = `CASE #0${c.id}`;
+            document.getElementById('ktas-cc').textContent = `"${c.cc}"`;
+            document.getElementById('ktas-bp').textContent = c.bp;
+            document.getElementById('ktas-hr').textContent = c.hr;
+            document.getElementById('ktas-rr').textContent = c.rr;
+            document.getElementById('ktas-spo2').textContent = c.spo2;
+            document.getElementById('ktas-avpu').textContent = c.avpu;
+            document.getElementById('ktas-nrs').textContent = c.nrs;
+
+            document.getElementById('ktas-feedback').classList.add('hidden');
+            document.getElementById('btn-next-ktas').classList.add('hidden');
+        }
+
+        // ==========================================
+        // Disaster START Triage Algorithm Engine
+        // ==========================================
+        let startState = { step1: null, step2: null, step3: null, step4: null };
+
+        function setStartStep(step, value) {
+            const display = document.getElementById('triage-tag-display');
+            const s2 = document.getElementById('start-step-2');
+            const s3 = document.getElementById('start-step-3');
+            const s4 = document.getElementById('start-step-4');
+
+            if (step === 1) {
+                if (value === true) {
+                    renderTriageTag('GREEN', '비응급 (Minor)', 'bg-emerald-600', '보행 가능 환자. 지정된 그린 존으로 이동.');
+                    return;
+                } else {
+                    s2.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            } else if (step === 2) {
+                if (value === 'over30') {
+                    renderTriageTag('RED', '긴급 (Immediate)', 'bg-red-600', '호흡수 30회/분 초과. 즉각적인 기도 확보 및 긴급 처치.');
+                    return;
+                } else if (value === 'none') {
+                    renderTriageTag('BLACK', '지연/사망 (Deceased)', 'bg-black', '기도 개방 후에도 자발 호흡 없음. 사망 판정.');
+                    return;
+                } else {
+                    s3.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            } else if (step === 3) {
+                if (value === 'slow') {
+                    renderTriageTag('RED', '긴급 (Immediate)', 'bg-red-600', '모세혈관 재충혈 시간(CRT) 2초 초과. 쇼크 진행 중.');
+                    return;
+                } else {
+                    s4.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            } else if (step === 4) {
+                if (value === 'unable') {
+                    renderTriageTag('RED', '긴급 (Immediate)', 'bg-red-600', '간단한 명령 이행 불가 (의식 변화). 긴급 이송.');
+                } else {
+                    renderTriageTag('YELLOW', '응급 (Delayed)', 'bg-yellow-500', '호흡/순환/의식 안정적이나 보행 불가. 응급 처치 대기.');
+                }
+            }
+        }
+
+        function renderTriageTag(color, label, bgColorClass, desc) {
+            const display = document.getElementById('triage-tag-display');
+            display.className = `mt-6 p-8 rounded-2xl border-4 ${bgColorClass} text-white flex flex-col items-center justify-center transition-all duration-300 shadow-2xl`;
+            display.innerHTML = `
+                <div class="text-xs uppercase font-bold tracking-widest opacity-80">START TRIAGE TAG</div>
+                <div class="text-3xl font-black mt-1">${label}</div>
+                <div class="text-xs mt-3 bg-black/30 px-3 py-1.5 rounded-lg border border-white/20">${desc}</div>
+            `;
+        }
+
+        // ==========================================
+        // ACLS Checklist Step Generator
+        // ==========================================
+        function selectACLSRhythm(rhythm) {
+            const container = document.getElementById('acls-checklist');
+            if (rhythm === 'vf') {
+                container.innerHTML = `
+                    <div class="p-3 bg-red-950/30 border border-red-800 rounded-lg">
+                        <span class="font-bold text-red-400">STEP 1: 제세동 (Shockable Rhythm)</span>
+                        <p class="text-slate-300 mt-1">즉시 제세동 시행 (양방상 120-200J 또는 단방상 360J). 제세동 직후 CPR 2분 재개!</p>
+                    </div>
+                    <div class="p-3 bg-slate-900 border border-slate-800 rounded-lg">
+                        <span class="font-bold text-cyan-400">STEP 2: 정맥로 확보 및 Epinephrine</span>
+                        <p class="text-slate-300 mt-1">2번째 제세동 후 CPR 계속하며 Epinephrine 1mg IV/IO 투여 (3-5분마다 반복).</p>
+                    </div>
+                    <div class="p-3 bg-slate-900 border border-slate-800 rounded-lg">
+                        <span class="font-bold text-amber-400">STEP 3: 항심율동제 (Amiodarone / Lidocaine)</span>
+                        <p class="text-slate-300 mt-1">3번째 제세동 후 난치성 VF/pVT의 경우 Amiodarone 300mg IV 볼러스 투여 (2차 150mg).</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="p-3 bg-cyan-950/30 border border-cyan-800 rounded-lg">
+                        <span class="font-bold text-cyan-400">STEP 1: 고품질 CPR 지속 (Non-Shockable)</span>
+                        <p class="text-slate-300 mt-1">제세동 불가능 리듬. 즉시 CPR 2분간 연속 시행 및 전문기도(Advanced Airway) 고려.</p>
+                    </div>
+                    <div class="p-3 bg-slate-900 border border-slate-800 rounded-lg">
+                        <span class="font-bold text-red-400">STEP 2: 즉시 Epinephrine 투여</span>
+                        <p class="text-slate-300 mt-1">가능한 한 신속히 Epinephrine 1mg IV/IO 투여 (3-5분마다 반복).</p>
+                    </div>
+                    <div class="p-3 bg-slate-900 border border-slate-800 rounded-lg">
+                        <span class="font-bold text-emerald-400">STEP 3: 가역적 원인 (5H / 5T) 교정</span>
+                        <p class="text-slate-300 mt-1">Hypovolemia, Hypoxia, Hydrogen ion(Acidosis), Hypo/Hyperkalemia, Hypothermia 및 Tension pneumothorax, Tamponade 등 평가.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ==========================================
+        // Dosage Calculators Logic
+        // ==========================================
+        function calculateDrip() {
+            const dose = parseFloat(document.getElementById('calc-dose').value); // mcg/kg/min
+            const weight = parseFloat(document.getElementById('calc-weight').value); // kg
+            const mg = parseFloat(document.getElementById('calc-mg').value); // mg in 500mL
+
+            if (!dose || !weight || !mg) return;
+
+            // Rate (mL/hr) = (mcg * kg * 60 min) / ( (mg * 1000 mcg) / 500 mL )
+            const totalMcgPerMin = dose * weight;
+            const concentrationMcgPerMl = (mg * 1000) / 500;
+            const mlPerHour = (totalMcgPerMin * 60) / concentrationMcgPerMl;
+
+            document.getElementById('calc-result').textContent = `${mlPerHour.toFixed(2)} mL/hr`;
+        }
+
+        function calculateGtt() {
+            const vol = parseFloat(document.getElementById('gtt-vol').value); // mL
+            const hrs = parseFloat(document.getElementById('gtt-time').value); // hours
+            const factor = parseFloat(document.getElementById('gtt-factor').value); // gtt/mL
+
+            if (!vol || !hrs || !factor) return;
+
+            const totalMin = hrs * 60;
+            const gttMin = (vol * factor) / totalMin;
+            const secPerDrop = 60 / gttMin;
+
+            document.getElementById('gtt-result').textContent = `${gttMin.toFixed(1)} gtt/min (약 ${secPerDrop.toFixed(1)}초당 1방울)`;
+        }
+
+        // ==========================================
+        // NCLEX / Korean Board Exam Quiz Module
+        // ==========================================
+        const quizQuestions = [
+            {
+                q: "1. 응급실에 내원한  chest pain 환자의 KTAS 중증도 분류 시 가장 우선적으로 확인해야 할 가역적 핵심 위험 징후(Red Flag)는?",
+                options: ["최근 3일간의 소화불량 양상", "좌측 방사통을 동반한 식은땀과 혈류역학적 불안정", "체온 상승 및 오한", "단순 근육통 관련 운동 이력"],
+                ans: 1
+            },
+            {
+                q: "2. 대형 재난 현장 START 분류표에서 자발 호흡이 없어 기도를 개방(Head tilt-Chin lift) 하였으나 여전히 호흡이 없는 환자의 Triage Tag 색상은?",
+                options: ["RED (긴급)", "YELLOW (응급)", "GREEN (비응급)", "BLACK (사망/지연)"],
+                ans: 3
+            },
+            {
+                q: "3. ACLS 가이드라인에 따른 심실세동(VF) 환자 CPR 중 Epinephrine 1mg을 투여하는 최적의 주기는?",
+                options: ["매 1분마다", "3~5분마다", "10분마다", "ROSC(자발순환회복) 직전에만 1회"],
+                ans: 1
+            }
+        ];
+
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            if (!container) return;
+
+            container.innerHTML = quizQuestions.map((item, qIdx) => `
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                    <div class="text-sm font-bold text-slate-200">${item.q}</div>
+                    <div class="space-y-2">
+                        ${item.options.map((opt, oIdx) => `
+                            <label class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer text-xs text-slate-300 transition">
+                                <input type="radio" name="quiz-${qIdx}" value="${oIdx}" class="text-cyan-500 focus:ring-cyan-500">
+                                <span>${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function gradeQuiz() {
+            let score = 0;
+            quizQuestions.forEach((item, qIdx) => {
+                const selected = document.querySelector(`input[name="quiz-${qIdx}"]:checked`);
+                if (selected && parseInt(selected.value) === item.ans) {
+                    score += 1;
+                }
+            });
+
+            const scorePercent = Math.round((score / quizQuestions.length) * 100);
+            const display = document.getElementById('quiz-score');
+            display.textContent = `채점 결과: ${score} / ${quizQuestions.length} 문제 정답 (${scorePercent}점)`;
+
+            if (scorePercent === 100) {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+        }
+
+        // Modal Helpers
+        function openModal(type) {
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+        function closeModal() {
+            document.getElementById('modal-backdrop').classList.add('hidden');
+        }
+        function downloadMockPDF() {
+            alert("실전 응급간호 지침서 PDF 다운로드가 시작되었습니다.");
+            closeModal();
+        }
+        function toggleAnnouncements() {
+            alert("신규 긴급 공지: 다음 주 ER OSCA 실기평가 지침이 업로드되었습니다.");
+        }
+    </script>
+</body>
+</html>
